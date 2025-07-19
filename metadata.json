@@ -1,0 +1,6 @@
+{
+  "name": "metaGONE",
+  "description": "A web application to remove metadata from images and videos directly in your browser. Upload JPG/PNG images or MP4/MOV videos to strip metadata for enhanced privacy. All processing is done on the client-side.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
