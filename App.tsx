@@ -15,11 +15,6 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
-      <div className="text-center pb-4">
-        <a href="https://gekkk.co/" target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 border border-slate-700 rounded-md text-slate-500 hover:text-sky-400 hover:border-sky-500 transition-colors">
-          gekkk.co
-        </a>
-      </div>
       <Footer />
     </div>
   );
