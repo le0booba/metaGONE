@@ -317,7 +317,7 @@ export const MediaProcessor: React.FC = () => {
       <div>
         <h2 className="text-xl font-semibold text-slate-100">Batch Media Processor</h2>
         <p className="mt-1 text-slate-400">Upload JPG/PNG images or MP4/MOV videos. Metadata is removed in your browser for privacy.</p>
-        <div className="mt-2 p-3 text-sm bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 rounded-lg">
+        <div className="mt-2 p-3 text-sm bg-amber-100/10 border border-amber-400/20 text-orange-200 rounded-lg">
             <p><strong>Note:</strong> Video processing can be slow and re-encodes the file. MOV files are converted to MP4 or WEBM.</p>
             <p className="mt-2">The "Add 'cleaned_' prefix" option applies to videos during processing and cannot be changed afterward for that file.</p>
         </div>
