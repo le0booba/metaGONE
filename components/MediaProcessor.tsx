@@ -1,30 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import JSZip from 'jszip';
 import { FileDropzone } from './FileDropzone';
 import { Spinner } from './Spinner';
 import { DownloadIcon, SparklesIcon, XCircleIcon, TrashIcon, ArchiveIcon } from './icons';
-
-// Combined interface for both images and videos
-interface ProcessableFile {
-  id: string;
-  file: File;
-  type: 'image' | 'video';
-  originalPreview: string;
-  processedUrl: string | null;
-  status: 'pending' | 'processing' | 'done' | 'error';
-  error: string | null;
-  progress: number; // For video processing progress
-  outputFilename: string; // For final video filename
-}
-
-const formatBytes = (bytes: number, decimals = 2) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
+import { ProcessableFile } from '../types';
+import FileListItem from './FileListItem';
 
 // The main combined processor component
 export const MediaProcessor: React.FC = () => {
@@ -34,15 +15,22 @@ export const MediaProcessor: React.FC = () => {
   const [addPrefix, setAddPrefix] = useState<boolean>(true);
   const [highQuality, setHighQuality] = useState<boolean>(false);
 
+  const filesRef = useRef(files);
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
   // Reset and clean up URLs
   const resetState = useCallback(() => {
-    files.forEach(f => {
-      if (f.originalPreview) URL.revokeObjectURL(f.originalPreview);
-      if (f.processedUrl) URL.revokeObjectURL(f.processedUrl);
+    setFiles(currentFiles => {
+      currentFiles.forEach(f => {
+        if (f.originalPreview) URL.revokeObjectURL(f.originalPreview);
+        if (f.processedUrl) URL.revokeObjectURL(f.processedUrl);
+      });
+      return [];
     });
-    setFiles([]);
     setIsBatchProcessing(false);
-  }, [files]);
+  }, []);
 
   // Handle both image and video file selections
   const handleFilesSelect = useCallback((selectedFiles: FileList | File[]) => {
@@ -65,24 +53,25 @@ export const MediaProcessor: React.FC = () => {
   }, []);
 
   // Remove a single file and clean up its URLs
-  const removeFile = (id: string) => {
-    const fileToRemove = files.find(f => f.id === id);
-    if (fileToRemove) {
-      if (fileToRemove.originalPreview) URL.revokeObjectURL(fileToRemove.originalPreview);
-      if (fileToRemove.processedUrl) URL.revokeObjectURL(fileToRemove.processedUrl);
-    }
-    setFiles(prev => prev.filter(f => f.id !== id));
-  };
+  const removeFile = useCallback((id: string) => {
+    setFiles(prevFiles => {
+      const fileToRemove = prevFiles.find(f => f.id === id);
+      if (fileToRemove) {
+        if (fileToRemove.originalPreview) URL.revokeObjectURL(fileToRemove.originalPreview);
+        if (fileToRemove.processedUrl) URL.revokeObjectURL(fileToRemove.processedUrl);
+      }
+      return prevFiles.filter(f => f.id !== id);
+    });
+  }, []);
   
   // Single processing function that handles both types
-  const processFile = (id: string) => {
+  const processFile = useCallback((id: string) => {
+    const fileToProcess = filesRef.current.find(f => f.id === id);
+    if (!fileToProcess) return Promise.resolve();
+
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'processing' } : f));
+    
     return new Promise<void>((resolve) => {
-      const fileIndex = files.findIndex(f => f.id === id);
-      if (fileIndex === -1) return resolve();
-      
-      const fileToProcess = files[fileIndex];
-      setFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'processing' } : f));
-      
       if (fileToProcess.type === 'image') {
         // Image processing logic
         const reader = new FileReader();
@@ -201,12 +190,13 @@ export const MediaProcessor: React.FC = () => {
         };
       }
     });
-  };
+  }, [addPrefix, highQuality]);
 
   // Process all pending files
   const processAll = async () => {
     setIsBatchProcessing(true);
-    for (const file of files) {
+    // Use filesRef.current to process the state at the time of invocation
+    for (const file of filesRef.current) {
       if (file.status === 'pending') {
         await processFile(file.id);
       }
@@ -235,9 +225,17 @@ export const MediaProcessor: React.FC = () => {
         await Promise.all(filePromises);
 
         const content = await zip.generateAsync({ type: 'blob' });
+        
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timestamp = `${day}-${month}_${hours}-${minutes}`;
+        
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
-        link.download = 'cleaned_media.zip';
+        link.download = `cleaned_media_${timestamp}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -252,63 +250,6 @@ export const MediaProcessor: React.FC = () => {
   
   const pendingFilesCount = useMemo(() => files.filter(f => f.status === 'pending').length, [files]);
   const doneFilesCount = useMemo(() => files.filter(f => f.status === 'done').length, [files]);
-
-  // Render a single file row
-  const renderFile = (mediaFile: ProcessableFile) => {
-    const { id, file, status, error, processedUrl, originalPreview, type, progress, outputFilename } = mediaFile;
-    const downloadFilename = type === 'image'
-        ? (addPrefix ? `cleaned_${file.name}` : file.name)
-        : outputFilename;
-    
-    return (
-        <div key={id} className="bg-slate-700/50 p-3 rounded-lg flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            {type === 'image' ? (
-                <img src={originalPreview} alt={file.name} className="w-16 h-16 object-cover rounded-md flex-shrink-0" />
-            ) : (
-                <video src={originalPreview} muted playsInline className="w-16 h-16 object-cover rounded-md bg-black flex-shrink-0" />
-            )}
-            <div className="flex-grow text-center sm:text-left w-full sm:w-auto">
-                <p className="font-medium text-slate-200 truncate" title={file.name}>{file.name}</p>
-                <p className="text-sm text-slate-400">{formatBytes(file.size)}</p>
-                {type === 'video' && status === 'processing' && (
-                    <div className="w-full bg-slate-600 rounded-full h-1.5 mt-1">
-                        <div className="bg-sky-500 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
-                    </div>
-                )}
-            </div>
-            <div className="flex-shrink-0 flex items-center space-x-2">
-                {status === 'pending' && <span className="text-xs font-medium text-slate-400 bg-slate-600/50 px-2 py-1 rounded-full">Pending</span>}
-                {status === 'processing' && type === 'image' && <Spinner />}
-                {status === 'processing' && type === 'video' && <span className="text-xs font-medium text-sky-300">{Math.round(progress)}%</span>}
-                {status === 'done' && <span className="text-xs font-medium text-green-400 bg-green-500/10 px-2 py-1 rounded-full">Done</span>}
-                {status === 'error' && <span className="text-xs font-medium text-red-400 bg-red-500/10 px-2 py-1 rounded-full" title={error!}>Error</span>}
-            </div>
-            <div className="flex-shrink-0 flex items-center space-x-2">
-                {status === 'pending' && (
-                    <button 
-                        onClick={() => processFile(id)} 
-                        disabled={isBatchProcessing || isZipping}
-                        className="p-2 text-sky-400 hover:text-sky-300 hover:bg-slate-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Process this file"
-                    >
-                        <SparklesIcon className="h-5 w-5" />
-                    </button>
-                )}
-                {status === 'done' && processedUrl && (
-                    <a href={processedUrl} download={downloadFilename} className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-full transition-colors" title="Download cleaned file"><DownloadIcon className="h-5 w-5" /></a>
-                )}
-                <button 
-                    onClick={() => removeFile(id)} 
-                    disabled={status === 'processing' || isBatchProcessing || isZipping}
-                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Remove file"
-                >
-                    <XCircleIcon className="h-5 w-5" />
-                </button>
-            </div>
-        </div>
-    );
-  }
 
   // The main JSX for the component
   return (
@@ -359,7 +300,18 @@ export const MediaProcessor: React.FC = () => {
                     </button>
                 </div>
             </div>
-            <div className="space-y-3">{files.map(renderFile)}</div>
+            <div className="space-y-3">
+              {files.map(mediaFile => (
+                <FileListItem
+                  key={mediaFile.id}
+                  mediaFile={mediaFile}
+                  onProcess={processFile}
+                  onRemove={removeFile}
+                  isBatchJobRunning={isBatchProcessing || isZipping}
+                  addPrefix={addPrefix}
+                />
+              ))}
+            </div>
         </div>
       )}
     </div>
