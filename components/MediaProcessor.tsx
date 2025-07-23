@@ -7,6 +7,18 @@ import { DownloadIcon, SparklesIcon, XCircleIcon, TrashIcon, ArchiveIcon } from 
 import { ProcessableFile } from '../types';
 import FileListItem from './FileListItem';
 
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [breakpoint]);
+  return isMobile;
+};
+
+const getFileKey = (file: File) => `${file.name}|${file.size}|${file.lastModified}|${file.type}`;
+
 // The main combined processor component
 export const MediaProcessor: React.FC = () => {
   const [files, setFiles] = useState<ProcessableFile[]>([]);
@@ -14,11 +26,24 @@ export const MediaProcessor: React.FC = () => {
   const [isZipping, setIsZipping] = useState<boolean>(false);
   const [addPrefix, setAddPrefix] = useState<boolean>(true);
   const [highQuality, setHighQuality] = useState<boolean>(false);
+  const [duplicateFileNames, setDuplicateFileNames] = useState<string[]>([]);
+  
+  const notificationTimer = useRef<number | null>(null);
+  const isMobile = useIsMobile();
+  const isAnyVideoProcessing = useMemo(() => files.some(f => f.type === 'video' && f.status === 'processing'), [files]);
 
   const filesRef = useRef(files);
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
+  
+  useEffect(() => {
+    return () => {
+        if (notificationTimer.current) {
+            clearTimeout(notificationTimer.current);
+        }
+    };
+  }, []);
 
   // Reset and clean up URLs
   const resetState = useCallback(() => {
@@ -31,26 +56,73 @@ export const MediaProcessor: React.FC = () => {
     });
     setIsBatchProcessing(false);
   }, []);
+  
+  const hideNotification = useCallback(() => {
+    setDuplicateFileNames([]);
+  }, []);
+
+  const showDuplicateNotification = useCallback((filenames: string[]) => {
+    if (notificationTimer.current) {
+        clearTimeout(notificationTimer.current);
+    }
+    setDuplicateFileNames(filenames);
+    notificationTimer.current = window.setTimeout(hideNotification, 5000); // Hide after 5 seconds
+  }, [hideNotification]);
+
+  const handleNotificationMouseEnter = useCallback(() => {
+    if (notificationTimer.current) {
+      clearTimeout(notificationTimer.current);
+      notificationTimer.current = null;
+    }
+  }, []);
+
+  const handleNotificationMouseLeave = useCallback(() => {
+    notificationTimer.current = window.setTimeout(hideNotification, 2000); // Hide after 2 seconds on leave
+  }, [hideNotification]);
 
   // Handle both image and video file selections
   const handleFilesSelect = useCallback((selectedFiles: FileList | File[]) => {
-    const newFiles: ProcessableFile[] = Array.from(selectedFiles)
-      .filter(file => 
-        ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'video/quicktime', 'video/webm'].includes(file.type)
-      )
-      .map(file => ({
-        id: crypto.randomUUID(),
-        file,
-        type: file.type.startsWith('image/') ? 'image' : 'video',
-        originalPreview: URL.createObjectURL(file),
-        processedUrl: null,
-        status: 'pending',
-        error: null,
-        progress: 0,
-        outputFilename: '',
-      }));
-    setFiles(prev => [...prev, ...newFiles]);
-  }, []);
+    const filesArray = Array.from(selectedFiles);
+    const duplicateNames: string[] = [];
+    
+    // Using filesRef.current which is always up-to-date
+    const existingFileKeys = new Set(filesRef.current.map(pf => getFileKey(pf.file)));
+    const addedKeysThisBatch = new Set<string>();
+    const newProcessableFiles: ProcessableFile[] = [];
+
+    for (const file of filesArray) {
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'video/quicktime', 'video/webm'].includes(file.type)) {
+            continue; // Skip unsupported
+        }
+
+        const key = getFileKey(file);
+
+        if (existingFileKeys.has(key) || addedKeysThisBatch.has(key)) {
+            duplicateNames.push(file.name);
+        } else {
+            addedKeysThisBatch.add(key);
+            newProcessableFiles.push({
+                id: crypto.randomUUID(),
+                file,
+                type: file.type.startsWith('image/') ? 'image' : 'video',
+                originalPreview: URL.createObjectURL(file),
+                processedUrl: null,
+                status: 'pending',
+                error: null,
+                progress: 0,
+                outputFilename: '',
+            });
+        }
+    }
+
+    if (newProcessableFiles.length > 0) {
+        setFiles(prevFiles => [...prevFiles, ...newProcessableFiles]);
+    }
+
+    if (duplicateNames.length > 0) {
+        showDuplicateNotification(duplicateNames);
+    }
+  }, [showDuplicateNotification]);
 
   // Remove a single file and clean up its URLs
   const removeFile = useCallback((id: string) => {
@@ -263,11 +335,32 @@ export const MediaProcessor: React.FC = () => {
         </div>
       </div>
       
-      <FileDropzone
-          onFilesSelect={handleFilesSelect}
-          accept="image/jpeg, image/png, image/jpg, video/mp4, video/quicktime, video/webm"
-          title="Drag & drop images or videos here, or click to select"
-      />
+      <div className="relative">
+        <FileDropzone
+            onFilesSelect={handleFilesSelect}
+            accept="image/jpeg, image/png, image/jpg, video/mp4, video/quicktime, video/webm"
+            title="Drag & drop images or videos here, or click to select"
+        />
+        {duplicateFileNames.length > 0 && (
+          <div 
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-sm px-4 py-3 bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg shadow-lg transition-opacity duration-300"
+            role="alert"
+            aria-live="assertive"
+            onMouseEnter={handleNotificationMouseEnter}
+            onMouseLeave={handleNotificationMouseLeave}
+          >
+            <p className="font-semibold text-base">Duplicate file{duplicateFileNames.length > 1 ? 's' : ''} ignored</p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-slate-300">
+                {duplicateFileNames.slice(0, 3).map((name, index) => (
+                    <li key={`${name}-${index}`} className="truncate" title={name}>{name}</li>
+                ))}
+            </ul>
+            {duplicateFileNames.length > 3 && (
+                <p className="text-xs mt-2 text-slate-400">...and {duplicateFileNames.length - 3} more.</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {files.length > 0 && (
         <div className="space-y-4">
@@ -290,7 +383,7 @@ export const MediaProcessor: React.FC = () => {
                         <TrashIcon className="mr-2 h-4 w-4" />
                         Clear All
                     </button>
-                    <button onClick={processAll} disabled={isBatchProcessing || isZipping || pendingFilesCount === 0} className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <button onClick={processAll} disabled={isBatchProcessing || isZipping || pendingFilesCount === 0 || (isMobile && isAnyVideoProcessing)} className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         <SparklesIcon className="mr-2 h-5 w-5" />
                         {isBatchProcessing ? 'Processing...' : `Process ${pendingFilesCount} File(s)`}
                     </button>
@@ -309,6 +402,7 @@ export const MediaProcessor: React.FC = () => {
                   onRemove={removeFile}
                   isBatchJobRunning={isBatchProcessing || isZipping}
                   addPrefix={addPrefix}
+                  disableVideoProcessing={isMobile && isAnyVideoProcessing}
                 />
               ))}
             </div>

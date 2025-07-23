@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ProcessableFile } from '../types';
 import { Spinner } from './Spinner';
@@ -18,6 +19,7 @@ interface FileListItemProps {
   onRemove: (id: string) => void;
   isBatchJobRunning: boolean;
   addPrefix: boolean;
+  disableVideoProcessing: boolean;
 }
 
 const FileListItem: React.FC<FileListItemProps> = ({
@@ -26,6 +28,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
   onRemove,
   isBatchJobRunning,
   addPrefix,
+  disableVideoProcessing,
 }) => {
   const { id, file, status, error, processedUrl, originalPreview, type, progress, outputFilename } = mediaFile;
   
@@ -60,7 +63,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
             {status === 'pending' && (
                 <button 
                     onClick={() => onProcess(id)} 
-                    disabled={isBatchJobRunning}
+                    disabled={isBatchJobRunning || (type === 'video' && disableVideoProcessing)}
                     className="p-2 text-sky-400 hover:text-sky-300 hover:bg-slate-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Process this file"
                 >

@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { UploadCloudIcon } from './icons';
 
 interface FileDropzoneProps {
-  onFilesSelect: (files: FileList | File[]) => void;
+  onFilesSelect: (files: File[]) => void;
   accept: string;
   title: string;
 }
@@ -64,14 +64,14 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({ onFilesSelect, accep
     setIsDragOver(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      onFilesSelect(files);
+      onFilesSelect(Array.from(files));
     }
   }, [onFilesSelect]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      onFilesSelect(files);
+      onFilesSelect(Array.from(files));
       // Reset input value to allow selecting the same file again
       e.target.value = '';
     }
