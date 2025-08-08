@@ -1,0 +1,19 @@
+
+@media (max-width: 639px) {
+  .header-container {
+    --scroll-progress: 0;
+  }
+
+  .header-dynamic-padding {
+    padding-top: calc(1rem - 0.5rem * var(--scroll-progress));
+    padding-bottom: calc(1rem - 0.5rem * var(--scroll-progress));
+  }
+
+  .header-description {
+    opacity: calc(1 - var(--scroll-progress));
+    margin-top: calc(0.25rem * (1 - var(--scroll-progress)));
+    max-height: calc(5rem * (1 - var(--scroll-progress)));
+    /* The transition is removed so the change is directly linked to scroll position */
+    transition: none;
+  }
+}
