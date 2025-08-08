@@ -70,14 +70,14 @@ export const MediaProcessor: React.FC = () => {
     notificationTimer.current = window.setTimeout(hideNotification, 5000); // Hide after 5 seconds
   }, [hideNotification]);
 
-  const handleNotificationMouseEnter = useCallback(() => {
+  const handleNotificationInteractionStart = useCallback(() => {
     if (notificationTimer.current) {
       clearTimeout(notificationTimer.current);
       notificationTimer.current = null;
     }
   }, []);
 
-  const handleNotificationMouseLeave = useCallback(() => {
+  const handleNotificationInteractionEnd = useCallback(() => {
     notificationTimer.current = window.setTimeout(hideNotification, 2000); // Hide after 2 seconds on leave
   }, [hideNotification]);
 
@@ -347,8 +347,10 @@ export const MediaProcessor: React.FC = () => {
             className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs sm:max-w-sm px-4 py-3 bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg shadow-lg transition-opacity duration-300"
             role="alert"
             aria-live="assertive"
-            onMouseEnter={handleNotificationMouseEnter}
-            onMouseLeave={handleNotificationMouseLeave}
+            onMouseEnter={handleNotificationInteractionStart}
+            onMouseLeave={handleNotificationInteractionEnd}
+            onTouchStart={handleNotificationInteractionStart}
+            onTouchEnd={handleNotificationInteractionEnd}
           >
             <p className="font-semibold text-base">Duplicate file{duplicateFileNames.length > 1 ? 's' : ''} ignored</p>
             <div className="max-h-32 overflow-y-auto pr-2 mt-2">
