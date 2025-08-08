@@ -3,20 +3,21 @@ import { Header } from './components/Header';
 import { MediaProcessor } from './components/MediaProcessor';
 import { Footer } from './components/Footer';
 
-const App: React.FC = () => {
+/**
+ * The main application component.
+ * It sets up the overall layout of the application, including the header,
+ * the main content area with the MediaProcessor, and the footer.
+ */
+function App() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 font-sans flex flex-col">
+    <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl p-4 md:p-8">
-            <MediaProcessor />
-          </div>
-        </div>
+        <MediaProcessor />
       </main>
       <Footer />
     </div>
   );
-};
+}
 
 export default App;
