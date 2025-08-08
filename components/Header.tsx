@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Logo } from './Logo';
 import useIsMobile from '../hooks/useIsMobile';
 
@@ -42,10 +42,9 @@ export const Header: React.FC = () => {
           </div>
           <div className={`
             font-mono transition-all duration-300 ease-in-out
-            flex items-center gap-2 sm:gap-3
-            ${showShrunkHeader
-              ? 'flex-row w-auto' 
-              : 'flex-col sm:flex-row w-full sm:w-auto'
+            ${isMobile
+              ? `grid gap-2 w-full ${isScrolled ? 'grid-cols-3' : 'grid-cols-1'}`
+              : 'flex flex-row items-center gap-3 w-auto'
             }
           `}>
             <a href="https://gekkk.co/" target="_blank" rel="noopener noreferrer" className={`${baseLinkClasses} ${conditionalLinkClasses}`}>
