@@ -1,7 +1,14 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Logo } from './Logo';
 import useIsMobile from '../hooks/useIsMobile';
+import { CatIcon, ExternalLinkIcon } from './icons';
+
+const navLinks = [
+  { href: "https://gekkk.co/", text: "gekkk.co", Icon: ExternalLinkIcon },
+  { href: "https://litterbox.catbox.moe/", text: "litterbox.catbox.moe", Icon: CatIcon },
+  { href: "https://catbox.moe/", text: "catbox.moe", Icon: CatIcon },
+];
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -21,12 +28,6 @@ export const Header: React.FC = () => {
 
   const showShrunkHeader = isMobile && isScrolled;
 
-  const baseLinkClasses = "max-w-full sm:w-auto text-center inline-block px-3 py-1 border border-slate-800 rounded-md text-sm text-slate-400 hover:text-sky-400 hover:border-sky-500 transition-colors";
-
-  const conditionalLinkClasses = showShrunkHeader
-    ? 'min-w-[80px] truncate'
-    : 'min-w-[100px] mx-4 sm:mx-0';
-
   return (
     <header className="w-full border-b border-slate-700 bg-slate-700/80 backdrop-blur-sm sticky top-0 z-10">
       <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out ${showShrunkHeader ? 'py-2' : 'py-4'}`}>
@@ -41,21 +42,42 @@ export const Header: React.FC = () => {
             </p>
           </div>
           <div className={`
-            font-mono transition-all duration-300 ease-in-out
-            ${isMobile
-              ? `grid gap-2 w-full ${isScrolled ? 'grid-cols-3' : 'grid-cols-1'}`
-              : 'flex flex-row items-center gap-3 w-auto'
+            font-mono
+            grid items-center gap-2
+            transition-all duration-300 ease-in-out
+            sm:flex sm:flex-row sm:gap-3
+            ${showShrunkHeader
+              ? 'grid-cols-3'
+              : 'grid-cols-1 w-full sm:w-auto'
             }
           `}>
-            <a href="https://gekkk.co/" target="_blank" rel="noopener noreferrer" className={`${baseLinkClasses} ${conditionalLinkClasses}`}>
-              gekkk.co
-            </a>
-            <a href="https://litterbox.catbox.moe/" target="_blank" rel="noopener noreferrer" className={`${baseLinkClasses} ${conditionalLinkClasses}`}>
-              litterbox.catbox.moe
-            </a>
-            <a href="https://catbox.moe/" target="_blank" rel="noopener noreferrer" className={`${baseLinkClasses} ${conditionalLinkClasses}`}>
-              catbox.moe
-            </a>
+            {navLinks.map(({ href, text, Icon }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`
+                  border border-slate-800 rounded-md text-sm text-slate-400 
+                  hover:text-sky-400 hover:border-sky-500 transition-all 
+                  duration-200 ease-in-out flex items-center justify-center
+                  ${showShrunkHeader 
+                      ? 'p-2' 
+                      : 'px-3 py-1 min-w-[100px] mx-4 sm:mx-0'
+                  }
+                `}
+                title={text}
+              >
+                {showShrunkHeader ? (
+                  <>
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                    <span className="sr-only">{text}</span>
+                  </>
+                ) : (
+                  <span className="truncate">{text}</span>
+                )}
+              </a>
+            ))}
           </div>
         </div>
       </div>
