@@ -7,16 +7,7 @@ import { Spinner } from './Spinner';
 import { DownloadIcon, SparklesIcon, XCircleIcon, TrashIcon, ArchiveIcon } from './icons';
 import { ProcessableFile } from '../types';
 import FileListItem from './FileListItem';
-
-const useIsMobile = (breakpoint = 768) => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [breakpoint]);
-  return isMobile;
-};
+import useIsMobile from '../hooks/useIsMobile';
 
 const getFileKey = (file: File) => `${file.name}|${file.size}|${file.lastModified}|${file.type}`;
 
@@ -30,7 +21,7 @@ export const MediaProcessor: React.FC = () => {
   const [duplicateFileNames, setDuplicateFileNames] = useState<string[]>([]);
   
   const notificationTimer = useRef<number | null>(null);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(); // Uses default 768px breakpoint
   const isAnyVideoProcessing = useMemo(() => files.some(f => f.type === 'video' && f.status === 'processing'), [files]);
 
   const filesRef = useRef(files);
