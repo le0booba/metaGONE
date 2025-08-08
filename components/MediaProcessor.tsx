@@ -344,21 +344,20 @@ export const MediaProcessor: React.FC = () => {
         />
         {duplicateFileNames.length > 0 && (
           <div 
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-sm px-4 py-3 bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg shadow-lg transition-opacity duration-300"
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs sm:max-w-sm px-4 py-3 bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg shadow-lg transition-opacity duration-300"
             role="alert"
             aria-live="assertive"
             onMouseEnter={handleNotificationMouseEnter}
             onMouseLeave={handleNotificationMouseLeave}
           >
             <p className="font-semibold text-base">Duplicate file{duplicateFileNames.length > 1 ? 's' : ''} ignored</p>
-            <ul className="list-disc list-inside mt-2 space-y-1 text-slate-300">
-                {duplicateFileNames.slice(0, 3).map((name, index) => (
-                    <li key={`${name}-${index}`} className="truncate" title={name}>{name}</li>
-                ))}
-            </ul>
-            {duplicateFileNames.length > 3 && (
-                <p className="text-xs mt-2 text-slate-400">...and {duplicateFileNames.length - 3} more.</p>
-            )}
+            <div className="max-h-32 overflow-y-auto pr-2 mt-2">
+              <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  {duplicateFileNames.map((name, index) => (
+                      <li key={`${name}-${index}`} className="truncate" title={name}>{name}</li>
+                  ))}
+              </ul>
+            </div>
           </div>
         )}
       </div>

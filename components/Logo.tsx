@@ -1,9 +1,8 @@
-
 import React from 'react';
 
 export const Logo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
-    viewBox="0 0 255 80"
+    viewBox="0 0 230 75"
     xmlns="http://www.w3.org/2000/svg"
     {...props}
     aria-label="metaGONE logo"
@@ -20,7 +19,7 @@ export const Logo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     />
 
     {/* Text */}
-    <text x="0" y="60" className="logo-text">
+    <text x="-2" y="62" className="logo-text">
       <tspan fontWeight="400">meta</tspan><tspan fontWeight="600">G</tspan><tspan fontWeight="400">one</tspan>
     </text>
 
