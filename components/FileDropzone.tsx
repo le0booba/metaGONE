@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { UploadCloudIcon } from './icons';

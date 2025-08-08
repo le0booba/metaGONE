@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import JSZip from 'jszip';
